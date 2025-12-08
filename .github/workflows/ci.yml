@@ -1,0 +1,33 @@
+name: PHP CI/CD - Prayer Time Client
+
+on:
+  push:
+    branches: [ main ] 
+  pull_request:
+    branches: [ main ] 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Kode
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: json, curl
+        coverage: none
+    
+    - name: Instal Dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+    
+    - name: Eksekusi PHPUnit Tests (Memakai GitHub Secret)
+      env:
+        # PENTING: Menggunakan Secret yang Anda buat di langkah 1.2
+        PRAYER_TIME_API_KEY: ${{ secrets.PRAYER_TIME_API_KEY }}
+      run: |
+        # Jalankan Test dan pastikan lolos
+        ./vendor/bin/phpunit
