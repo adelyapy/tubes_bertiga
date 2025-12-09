@@ -24,16 +24,30 @@ class PrayerTimeClient {
     }
 
     /**
-     * Mengambil jadwal sholat hari ini untuk kota tertentu.
+     * Mengambil jadwal sholat untuk tanggal tertentu di kota tertentu.
+     * @param string $city Nama kota
+     * @param string $country Nama negara
+     * @param string|null $date Tanggal dalam format Y-m-d (contoh: 2025-12-01). Jika null, gunakan tanggal hari ini.
      */
-    public function getDailyTimesByCity(string $city, string $country): array {
+    public function getDailyTimesByCity(string $city, string $country, ?string $date = null): array {
         try {
+            // Jika tanggal tidak diberikan, gunakan tanggal hari ini
+            if ($date === null) {
+                $date = date('Y-m-d');
+            }
+            
+            // Parse tanggal untuk mendapatkan bulan dan tahun
+            $dateParts = explode('-', $date);
+            $year = $dateParts[0] ?? date('Y');
+            $month = $dateParts[1] ?? date('m');
+            $day = $dateParts[2] ?? date('d');
+            
             $response = $this->client->request('GET', 'calendarByCity', [
                 'query' => [
                     'city' => $city,
                     'country' => $country,
-                    'month' => date('m'),
-                    'year' => date('Y'),
+                    'month' => $month,
+                    'year' => $year,
                     'method' => 8, // Metode perhitungan
                 ]
             ]);
@@ -56,17 +70,37 @@ class PrayerTimeClient {
                 ];
             }
             
-            // Mengambil data jadwal untuk hari ini (asumsi data[0] adalah hari ini)
-            if (empty($data['data'][0]['timings'])) {
-                 return ['success' => false, 'message' => 'Jadwal sholat untuk hari ini tidak ditemukan.'];
+            // Cari data untuk tanggal yang diminta
+            $selectedDateData = null;
+            foreach ($data['data'] as $dayData) {
+                if (isset($dayData['date']['gregorian']['date']) && 
+                    $dayData['date']['gregorian']['date'] === $date) {
+                    $selectedDateData = $dayData;
+                    break;
+                }
+            }
+            
+            // Jika tidak ditemukan, coba dengan format lain atau gunakan index berdasarkan hari
+            if ($selectedDateData === null) {
+                // Coba mencari berdasarkan readable date atau gunakan index
+                $dayIndex = (int)$day - 1;
+                if (isset($data['data'][$dayIndex])) {
+                    $selectedDateData = $data['data'][$dayIndex];
+                } else {
+                    return ['success' => false, 'message' => 'Jadwal sholat untuk tanggal yang dipilih tidak ditemukan.'];
+                }
+            }
+            
+            if (empty($selectedDateData['timings'])) {
+                 return ['success' => false, 'message' => 'Jadwal sholat untuk tanggal yang dipilih tidak ditemukan.'];
             }
 
             return [
                 'success' => true,
                 'city' => $city,
                 'country' => $country,
-                'date' => $data['data'][0]['date']['readable'],
-                'timings' => $data['data'][0]['timings']
+                'date' => $selectedDateData['date']['readable'],
+                'timings' => $selectedDateData['timings']
             ];
 
         } catch (RequestException $e) {
