@@ -91,7 +91,7 @@ $prayer_map = [
 <header class="header-bg">
     <div class="container text-center">
         <h1>🕌 Pencari Jadwal Sholat</h1>
-        <p>Aplikasi REST Client Sederhana</p>
+        <p>Aplikasi untuk mencari jadwal sholat</p>
     </div>
 </header>
 
