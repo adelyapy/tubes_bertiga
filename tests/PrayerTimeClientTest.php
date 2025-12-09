@@ -9,7 +9,6 @@ use GuzzleHttp\Psr7\Response;
 class PrayerTimeClientTest extends TestCase {
     
     // --- Test Case Dasar (TC 1 & TC 2) ---
-    // TC 1: File Exist & TC 2: Valid Syntax (Dikerjakan otomatis oleh PHPUnit)
     public function testClientCanBeInstantiated() {
         // Menggunakan key dummy 'not_required' untuk testing
         $client = new PrayerTimeClient('not_required'); 
@@ -21,7 +20,6 @@ class PrayerTimeClientTest extends TestCase {
     // --- Test Case Validasi (TC 3) ---
     public function testThrowsExceptionIfApiKeyIsEmpty() {
         // TC 3: API Key Tidak Boleh Kosong (Menguji pengamanan Secret/Key)
-        // Kita berharap kode akan melempar error (Exception) jika key kosong
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("API Key harus disediakan atau set 'not_required'.");
         
@@ -31,29 +29,25 @@ class PrayerTimeClientTest extends TestCase {
     
     // --- Test Case Fungsional (TC 4, TC 5, TC 6) ---
     public function testGetTimesReturnsValidDataStructureAndStatus() {
-        // Untuk testing fungsionalitas, kita menggunakan live API
         $client = new PrayerTimeClient('not_required'); 
         
         // Mengambil data untuk kota Bandung
         $result = $client->getDailyTimesByCity('Bandung', 'Indonesia');
 
         // TC 4: Response Code Harus 200 (diwakili oleh 'success' => true)
-        // Jika API sedang down/bermasalah, test ini akan memberi tahu kita
         $this->assertTrue($result['success'], "Panggilan API harus sukses. Pesan Error: " . ($result['message'] ?? ''));
         
         // TC 5: Valid JSON Response (Struktur Data)
-        // Memastikan hasil memiliki kunci 'timings'
         $this->assertArrayHasKey('timings', $result, "Response harus memiliki kunci 'timings'");
         
         // TC 6: Validasi Data Spesifik (Cek format waktu di kunci Fajr)
-        // Memastikan data timings memiliki jadwal 'Fajr'
         $this->assertArrayHasKey('Fajr', $result['timings'], "Data harus memiliki jadwal Fajr");
         
-        // Memastikan format waktu adalah HH:MM (contoh: 04:30)
+        // Memastikan format waktu adalah HH:MM
         $this->assertMatchesRegularExpression('/\d{2}:\d{2}/', $result['timings']['Fajr'], "Waktu Fajr harus format HH:MM");
     }
 
-    // --- Test Case Tambahan: Skenario Gagal ---
+    // --- Test Case Tambahan: Skenario Gagal (TC 7)---
     public function testReturnsFailureOnInvalidCity() {
         $client = new PrayerTimeClient('not_required'); 
         
@@ -62,8 +56,38 @@ class PrayerTimeClientTest extends TestCase {
 
         // Kita harapkan API mengembalikan status gagal (success=false)
         $this->assertFalse($result['success'], "Panggilan ke kota fiktif seharusnya gagal (return false).");
-        
-        // Memastikan pesan error yang sesuai muncul
         $this->assertStringContainsString('Request Error', $result['message'], "Pesan error tidak sesuai.");
+    }
+    
+    // --- Test Case Pengujian Case-Insensitivity (TC 8)---
+    public function testCanHandleLowerCaseInput() {
+        $client = new PrayerTimeClient('not_required');
+        
+        // Menguji dengan input yang sengaja huruf kecil
+        $result = $client->getDailyTimesByCity('surabaya', 'indonesia');
+        
+        // Memastikan panggilan API tetap sukses meskipun casing tidak standar
+        $this->assertTrue($result['success'], "API harus sukses memproses input huruf kecil.");
+        
+        // Memastikan data utama tetap ada
+        $this->assertArrayHasKey('timings', $result);
+    }
+
+    //--- Test Case Validasi Data Waktu Krusial (TC 9)---
+    public function testValidatesCrucialPrayerTimes() {
+        $client = new PrayerTimeClient('not_required'); 
+        $result = $client->getDailyTimesByCity('Denpasar', 'Indonesia');
+        
+        // Memastikan Maghrib dan Isya ada dan formatnya benar
+        $this->assertTrue($result['success']);
+        $this->assertArrayHasKey('timings', $result);
+
+        // Validasi Maghrib
+        $this->assertArrayHasKey('Maghrib', $result['timings'], "Jadwal Maghrib harus ada.");
+        $this->assertMatchesRegularExpression('/\d{2}:\d{2}/', $result['timings']['Maghrib'], "Waktu Maghrib harus format HH:MM");
+
+        // Validasi Isha
+        $this->assertArrayHasKey('Isha', $result['timings'], "Jadwal Isya harus ada.");
+        $this->assertMatchesRegularExpression('/\d{2}:\d{2}/', $result['timings']['Isha'], "Waktu Isya harus format HH:MM");
     }
 }
