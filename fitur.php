@@ -76,6 +76,50 @@
             color: #0a2342;
             text-transform: uppercase;
         }
+
+        /* Kiblat */
+        .qibla-card {
+            border: 0;
+            border-radius: 16px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+            height: 100%;
+        }
+        .compass {
+            width: 180px;
+            height: 180px;
+            border: 10px solid #e9ecef;
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto 16px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.06);
+            background: radial-gradient(circle, #fff 0%, #f8fafc 70%, #eef2f7 100%);
+        }
+        .compass::after {
+            content: "N";
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 700;
+            color: #6c757d;
+        }
+        .arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 60px solid #0d6efd;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%) rotate(0deg);
+            transform-origin: 50% 60px;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 6px 10px rgba(13,110,253,0.25));
+        }
+        .qibla-info small {
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -118,6 +162,30 @@
                             <i class="bi bi-bell me-1"></i>Aktifkan pengingat
                         </button>
                         <div id="reminder-status" class="reminder-status small"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-5">
+                <div class="card qibla-card h-100">
+                    <div class="card-body text-center">
+                        <div class="feature-icon mb-3" style="background:#0abf9f;">
+                            <i class="bi bi-compass"></i>
+                        </div>
+                        <h5 class="card-title">Pencari arah kiblat</h5>
+                        <p class="card-text text-muted">
+                            Gunakan lokasi perangkat untuk mendapatkan arah kiblat (Ka'bah) dari posisi Anda.
+                        </p>
+                        <div class="compass my-3">
+                            <div class="arrow" id="qibla-arrow"></div>
+                        </div>
+                        <div class="qibla-info mb-3">
+                            <div class="fw-bold" id="qibla-bearing">-°</div>
+                            <small id="qibla-status">Klik "Cari arah" untuk mulai.</small>
+                        </div>
+                        <button class="btn btn-success w-100" id="btn-qibla">
+                            <i class="bi bi-geo-alt me-1"></i>Cari arah
+                        </button>
                     </div>
                 </div>
             </div>
@@ -210,6 +278,64 @@
         }
 
         document.getElementById("enable-reminder")?.addEventListener("click", enableReminder);
+    })();
+
+    // --- Pencari arah kiblat ---
+    (function() {
+        const btn = document.getElementById('btn-qibla');
+        const arrow = document.getElementById('qibla-arrow');
+        const statusEl = document.getElementById('qibla-status');
+        const bearingEl = document.getElementById('qibla-bearing');
+        const KAABA = { lat: 21.422487, lon: 39.826206 };
+
+        function toRad(deg) { return deg * Math.PI / 180; }
+        function toDeg(rad) { return rad * 180 / Math.PI; }
+
+        function computeBearing(lat1, lon1, lat2, lon2) {
+            const dLon = toRad(lon2 - lon1);
+            const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+            const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+                      Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+            const brng = Math.atan2(y, x);
+            return (toDeg(brng) + 360) % 360;
+        }
+
+        function setStatus(msg, isError = false) {
+            if (!statusEl) return;
+            statusEl.textContent = msg;
+            statusEl.style.color = isError ? '#dc3545' : '#6c757d';
+        }
+
+        function updateArrow(deg) {
+            if (!arrow) return;
+            arrow.style.transform = `translateX(-50%) rotate(${deg}deg)`;
+        }
+
+        function handleSuccess(pos) {
+            const { latitude, longitude } = pos.coords;
+            const bearing = computeBearing(latitude, longitude, KAABA.lat, KAABA.lon);
+            bearingEl.textContent = `${bearing.toFixed(1)}°`;
+            setStatus('Arah relatif terhadap utara sejati. Hadapkan perangkat ke utara.');
+            updateArrow(bearing);
+        }
+
+        function handleError(err) {
+            console.error(err);
+            setStatus('Gagal mengambil lokasi. Izinkan akses lokasi dan coba lagi.', true);
+        }
+
+        btn?.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                setStatus('Geolocation tidak didukung browser ini.', true);
+                return;
+            }
+            setStatus('Mengambil lokasi...');
+            navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        });
     })();
 </script>
 </body>
