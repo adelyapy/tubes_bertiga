@@ -5,7 +5,8 @@
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $city = urlencode($_POST['city'] ?? '');
     $country = urlencode($_POST['country'] ?? '');
-    header("Location: hasil.php?city=" . $city . "&country=" . $country);
+    $date = urlencode($_POST['date'] ?? date('Y-m-d')); // Tambahkan parameter tanggal
+    header("Location: hasil.php?city=" . $city . "&country=" . $country . "&date=" . $date);
     exit;
 }
 
@@ -90,6 +91,10 @@ $country = '';
                     <div class="mb-3">
                         <label for="country" class="form-label">Negara</label>
                         <input type="text" class="form-control" id="country" name="country" value="<?= htmlspecialchars($country) ?>" placeholder="Masukkan nama negara" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Tanggal</label>
+                        <input type="date" class="form-control" id="date" name="date" value="<?= date('Y-m-d') ?>" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-search me-2"></i>Cari Jadwal
