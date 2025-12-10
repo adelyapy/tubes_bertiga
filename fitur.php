@@ -120,6 +120,80 @@
         .qibla-info small {
             color: #6c757d;
         }
+        
+        /* Kalender Islami */
+        .hijri-calendar-card {
+            border: 0;
+            border-radius: 16px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+            height: 100%;
+        }
+        .hijri-date-display {
+            background: linear-gradient(135deg,rgb(80, 148, 231) 0%,rgb(203, 100, 52) 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .hijri-date-display .hijri-day {
+            font-size: 2.5rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .hijri-date-display .hijri-month-year {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin-top: 8px;
+        }
+        .hijri-date-display .gregorian-date {
+            font-size: 0.9rem;
+            opacity: 0.85;
+            margin-top: 5px;
+        }
+        .hijri-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .hijri-day-name {
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #6c757d;
+            padding: 5px;
+        }
+        .hijri-day-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+        .hijri-day-cell:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+        .hijri-day-cell.today {
+            background: linear-gradient(135deg, #8B4513, #A0522D);
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(139, 69, 19, 0.3);
+        }
+        .hijri-day-cell.other-month {
+            opacity: 0.4;
+        }
+        .hijri-loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -150,7 +224,7 @@
             <h1 class="page-title h3 mb-0">Fitur Unggulan</h1>
         </div>
         <div class="row g-3 justify-content-center">
-            <div class="col-md-6 col-lg-5">
+            <div class="col-md-6 col-lg-4">
                 <div class="card feature-card h-100">
                     <div class="card-body">
                         <div class="feature-icon bg-info mb-3">
@@ -166,7 +240,7 @@
                 </div>
             </div>
 
-            <div class="col-md-6 col-lg-5">
+            <div class="col-md-6 col-lg-4">
                 <div class="card qibla-card h-100">
                     <div class="card-body text-center">
                         <div class="feature-icon mb-3" style="background:#0abf9f;">
@@ -186,6 +260,28 @@
                         <button class="btn btn-success w-100" id="btn-qibla">
                             <i class="bi bi-geo-alt me-1"></i>Cari arah
                         </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card Kalender Islami -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card hijri-calendar-card h-100">
+                    <div class="card-body">
+                        <div class="feature-icon mb-3" style="background: linear-gradient(135deg,rgb(108, 78, 230),rgb(82, 107, 235));">
+                            <i class="bi bi-calendar3"></i>
+                        </div>
+                        <h5 class="card-title">Kalender Islami (Hijriah)</h5>
+                        <p class="card-text text-muted">
+                            Lihat tanggal Hijriah saat ini dan kalender bulanan Islami.
+                        </p>
+                        
+                        <div id="hijri-calendar-container">
+                            <div class="hijri-loading">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                Memuat kalender...
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -336,6 +432,208 @@
                 maximumAge: 0
             });
         });
+    })();
+
+    // --- Kalender Islami (Hijriah) ---
+    (function() {
+        const container = document.getElementById('hijri-calendar-container');
+        if (!container) return;
+
+        const hijriMonths = [
+            'Muharram', 'Safar', 'Rabi\' al-awwal', 'Rabi\' al-thani',
+            'Jumada al-awwal', 'Jumada al-thani', 'Rajab', 'Sha\'ban',
+            'Ramadan', 'Shawwal', 'Dhu al-Qi\'dah', 'Dhu al-Hijjah'
+        ];
+
+        const dayNames = ['Ah', 'Se', 'Se', 'Ra', 'Kh', 'Ju', 'Sa'];
+
+        async function loadHijriCalendar() {
+            try {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = today.getMonth() + 1;
+                const day = today.getDate();
+                
+                // Menggunakan endpoint yang lebih tepat dengan parameter lengkap
+                // Endpoint calendar memerlukan lokasi, jadi kita gunakan endpoint gToH untuk konversi
+                // atau gunakan calendarByCity dengan lokasi default
+                
+                // Coba menggunakan endpoint gToH untuk konversi tanggal hari ini
+                const gToHResponse = await fetch(`https://api.aladhan.com/v1/gToH/${day}-${month}-${year}`);
+                const gToHData = await gToHResponse.json();
+                
+                if (gToHData.code === 200 && gToHData.data) {
+                    // Ambil data kalender bulan ini menggunakan calendarByCity
+                    // Gunakan Jakarta sebagai default karena tidak memerlukan lokasi spesifik
+                    const calendarResponse = await fetch(`https://api.aladhan.com/v1/calendarByCity?city=Jakarta&country=Indonesia&month=${month}&year=${year}&method=8`);
+                    const calendarData = await calendarResponse.json();
+                    
+                    if (calendarData.code === 200 && calendarData.data) {
+                        renderHijriCalendar(calendarData.data, today, gToHData.data);
+                    } else {
+                        // Fallback: hanya tampilkan tanggal hari ini
+                        renderTodayOnly(gToHData.data, today);
+                    }
+                } else {
+                    throw new Error('Gagal memuat data konversi tanggal');
+                }
+            } catch (error) {
+                console.error('Error loading hijri calendar:', error);
+                // Fallback: coba metode alternatif
+                try {
+                    await loadHijriCalendarFallback();
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError);
+                    container.innerHTML = `
+                        <div class="hijri-loading text-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Gagal memuat kalender. Pastikan koneksi internet aktif.
+                            <br><small class="mt-2 d-block">Error: ${error.message}</small>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function loadHijriCalendarFallback() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1;
+            const day = today.getDate();
+            
+            // Gunakan endpoint yang lebih sederhana
+            const response = await fetch(`https://api.aladhan.com/v1/calendarByCity?city=Jakarta&country=Indonesia&month=${month}&year=${year}&method=8`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.code === 200 && data.data && Array.isArray(data.data)) {
+                renderHijriCalendar(data.data, today, null);
+            } else {
+                throw new Error('Format data tidak valid');
+            }
+        }
+
+        function renderTodayOnly(hijriData, today) {
+            if (!hijriData || !hijriData.hijri) return;
+            
+            const hijri = hijriData.hijri;
+            const hijriDay = hijri.day;
+            const hijriMonth = hijriMonths[parseInt(hijri.month.number) - 1];
+            const hijriYear = hijri.year;
+            const gregorianDate = today.toLocaleDateString('id-ID', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+
+            container.innerHTML = `
+                <div class="hijri-date-display">
+                    <div class="hijri-day">${hijriDay}</div>
+                    <div class="hijri-month-year">${hijriMonth} ${hijriYear} H</div>
+                    <div class="gregorian-date">${gregorianDate}</div>
+                </div>
+                <div class="text-center text-muted small mt-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Kalender bulanan sedang dimuat...
+                </div>
+            `;
+        }
+
+        function renderHijriCalendar(calendarData, today, todayHijriData) {
+            // Cari data hari ini
+            const todayStr = today.toISOString().split('T')[0];
+            let todayHijri = null;
+
+            // Jika todayHijriData diberikan, gunakan itu
+            if (todayHijriData && todayHijriData.hijri) {
+                todayHijri = todayHijriData.hijri;
+            } else {
+                // Cari dari calendarData
+                calendarData.forEach(day => {
+                    if (day.date && day.date.gregorian && day.date.gregorian.date === todayStr) {
+                        todayHijri = day.date.hijri;
+                    }
+                });
+            }
+
+            // Jika masih tidak ada, ambil dari index pertama
+            if (!todayHijri && calendarData.length > 0 && calendarData[0].date) {
+                todayHijri = calendarData[0].date.hijri;
+            }
+
+            // Render tampilan
+            if (todayHijri) {
+                const hijriDay = todayHijri.day;
+                const hijriMonth = hijriMonths[parseInt(todayHijri.month.number) - 1];
+                const hijriYear = todayHijri.year;
+                const gregorianDate = today.toLocaleDateString('id-ID', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+
+                let html = `
+                    <div class="hijri-date-display">
+                        <div class="hijri-day">${hijriDay}</div>
+                        <div class="hijri-month-year">${hijriMonth} ${hijriYear} H</div>
+                        <div class="gregorian-date">${gregorianDate}</div>
+                    </div>
+                `;
+
+                // Render kalender grid sederhana
+                html += '<div class="hijri-calendar-grid">';
+                
+                // Header hari
+                dayNames.forEach(day => {
+                    html += `<div class="hijri-day-name">${day}</div>`;
+                });
+
+                // Ambil 14 hari dari calendarData
+                let dayCount = 0;
+                const todayIndex = calendarData.findIndex(d => 
+                    d.date && d.date.gregorian && d.date.gregorian.date === todayStr
+                );
+                
+                const startIndex = Math.max(0, (todayIndex >= 0 ? todayIndex : 0) - 3);
+                const endIndex = Math.min(calendarData.length, startIndex + 14);
+
+                for (let i = startIndex; i < endIndex && dayCount < 14; i++) {
+                    if (!calendarData[i] || !calendarData[i].date) continue;
+                    
+                    const day = calendarData[i];
+                    const isToday = day.date.gregorian && day.date.gregorian.date === todayStr;
+                    const hijriDayNum = parseInt(day.date.hijri.day);
+                    
+                    html += `
+                        <div class="hijri-day-cell ${isToday ? 'today' : ''}" 
+                             title="${day.date.hijri.day} ${hijriMonths[parseInt(day.date.hijri.month.number) - 1]} ${day.date.hijri.year} H">
+                            ${hijriDayNum}
+                        </div>
+                    `;
+                    dayCount++;
+                }
+
+                // Isi sisa grid jika kurang dari 14 hari
+                while (dayCount < 14) {
+                    html += '<div class="hijri-day-cell other-month"></div>';
+                    dayCount++;
+                }
+
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                throw new Error('Data Hijriah tidak ditemukan');
+            }
+        }
+
+        // Load kalender saat halaman dimuat
+        loadHijriCalendar();
     })();
 </script>
 </body>
