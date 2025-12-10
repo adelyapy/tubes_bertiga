@@ -218,6 +218,10 @@
             padding-bottom: 4px;
         }
 
+        .info-header h5 {
+            color: #000000
+        }
+
         .list-check i {
             font-size: 1rem;
         }
